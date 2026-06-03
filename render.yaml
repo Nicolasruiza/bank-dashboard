@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: bank-dashboard
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: FIREBASE_CREDENTIALS_JSON
+        sync: false
+      - key: GRPC_DNS_RESOLVER
+        value: native

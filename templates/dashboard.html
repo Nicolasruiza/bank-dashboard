@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>P&L Dashboard</title>
+  <script>
+    // Apply saved theme before page renders to prevent flash
+    (function() {
+      const t = localStorage.getItem("theme");
+      if (t) document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <h1>P&amp;L Dashboard</h1>
+      <span class="header-sub">Bank Statement Analyzer</span>
+    </div>
+    <div class="header-right">
+      <button class="btn-secondary" onclick="openManageModal()">Manage Statements</button>
+      <button class="btn-primary" onclick="openUploadModal()">+ Upload Statement</button>
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Net Worth Banner (always visible) -->
+  <div class="net-worth-banner" id="netWorthBanner">
+    <div class="nw-item">
+      <span class="nw-label">Net Worth</span>
+      <span class="nw-value green" id="nwTotal">—</span>
+    </div>
+    <span class="nw-sep">|</span>
+    <div class="nw-item">
+      <span class="nw-label">💰 Cash</span>
+      <span class="nw-value" id="nwCash">—</span>
+    </div>
+    <span class="nw-sep">|</span>
+    <div class="nw-item">
+      <span class="nw-label">📈 Investments</span>
+      <span class="nw-value" id="nwInvest">—</span>
+    </div>
+    <div class="nw-right">
+      <span id="nwFx" style="font-size:11px;color:var(--text-muted);"></span>
+      <button class="nw-refresh" onclick="loadNetWorth()">↻</button>
+    </div>
+  </div>
+
+  <!-- Account Type Tabs -->
+  <div class="account-tabs">
+    <button class="tab-btn active" data-type="personal" onclick="switchAccountType('personal')">Personal</button>
+    <button class="tab-btn" data-type="business" onclick="switchAccountType('business')">Business</button>
+    <button class="tab-btn" data-type="portfolio" onclick="switchToPortfolio()">Portfolio</button>
+  </div>
+
+  <!-- ── P&L VIEW (Personal / Business) ──────────────────────────────────────── -->
+  <div id="pnlView">
+
+    <!-- Month / Account / Filters Bar -->
+    <div class="month-bar">
+      <label for="monthSelect">Month</label>
+      <select id="monthSelect" onchange="onMonthChange()">
+        <option value="">— select a month —</option>
+      </select>
+      <label for="accountSuffixSelect">Account</label>
+      <select id="accountSuffixSelect" onchange="onAccountSuffixChange()">
+        <option value="">All Accounts</option>
+      </select>
+      <label class="toggle-label" for="excludeInternalToggle">
+        <input type="checkbox" id="excludeInternalToggle" onchange="onExcludeInternalChange()" />
+        Exclude Internal Transfers (True P&amp;L)
+      </label>
+      <span id="monthStatus" class="month-status"></span>
+    </div>
+
+    <!-- P&L Summary Cards -->
+    <div class="summary-cards">
+      <div class="card income">
+        <div class="card-label">Total Income</div>
+        <div class="card-value" id="cardIncome">—</div>
+      </div>
+      <div class="card expenses">
+        <div class="card-label">Total Expenses</div>
+        <div class="card-value" id="cardExpenses">—</div>
+      </div>
+      <div class="card net" id="cardNetWrap">
+        <div class="card-label">Net</div>
+        <div class="card-value" id="cardNet">—</div>
+      </div>
+    </div>
+
+    <!-- Raw totals banner (shown when "exclude internal" is on, as secondary reference) -->
+    <div id="adjustedSummary" class="adjusted-summary" style="display:none">
+      Raw (incl. internal):&nbsp;
+      <span id="adjIncome" class="amount-pos"></span> income /&nbsp;
+      <span id="adjExpenses" class="amount-neg"></span> expenses /&nbsp;
+      Net: <span id="adjNet"></span>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="chart-box">
+        <h2>Expense Breakdown</h2>
+        <div class="chart-container">
+          <canvas id="donutChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-box">
+        <h2>6-Month Trend</h2>
+        <div class="chart-container">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Insights -->
+    <div class="section" id="insightsSection" style="display:none">
+      <div class="section-header">
+        <h2>Insights &amp; Recommendations</h2>
+        <span id="insightsMonth" class="month-status"></span>
+      </div>
+      <div id="insightsContent"></div>
+    </div>
+
+    <!-- Spending DNA (collapsible) -->
+    <div class="section" id="spendingDnaSection" style="display:none">
+      <div class="section-header dna-header" onclick="toggleSpendingDna()">
+        <h2>💸 Spending DNA <span class="hint">3-month behavioral patterns</span></h2>
+        <span class="dna-chevron" id="dnaChevron">▼</span>
+      </div>
+      <div id="dnaContent" style="display:none"></div>
+    </div>
+
+    <!-- Category Breakdown + Budget Toggle -->
+    <div class="section">
+      <div class="section-header">
+        <h2 id="categoryHeading">Category Breakdown <span class="hint">Click a row to see transactions</span></h2>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="view-toggle" id="pnlBudgetToggle" style="display:none">
+            <button class="toggle-view-btn active" id="togglePnlBtn" onclick="showPnlView()">P&amp;L</button>
+            <button class="toggle-view-btn" id="toggleBudgetBtn" onclick="showBudgetView()">Budget</button>
+          </div>
+          <button class="btn-secondary btn-sm" onclick="openAddCategoryModal()">+ Add Category</button>
+        </div>
+      </div>
+
+      <!-- P&L table -->
+      <div id="pnlTableView">
+        <table id="categoryTable">
+          <thead>
+            <tr>
+              <th style="width:28px"></th>
+              <th class="sortable" onclick="sortTable('category','category')">Category <span class="sort-indicator" id="si-cat-category"></span></th>
+              <th class="sortable type-filter-th" id="typeFilterTh" onclick="cycleTypeFilter()" title="Click to filter by type">Type <span id="typeFilterIndicator"></span></th>
+              <th class="num sortable" onclick="sortTable('category','amount')">Amount <span class="sort-indicator" id="si-cat-amount"></span></th>
+              <th class="num sortable" onclick="sortTable('category','count')">Transactions <span class="sort-indicator" id="si-cat-count"></span></th>
+              <th class="num sortable" onclick="sortTable('category','pct')">% of Total <span class="sort-indicator" id="si-cat-pct"></span></th>
+            </tr>
+          </thead>
+          <tbody id="categoryBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Budget sub-view -->
+      <div id="budgetView" style="display:none">
+        <div class="budget-traffic-light" id="budgetTrafficLight"></div>
+        <div style="height:240px;margin-bottom:20px;"><canvas id="budgetChart"></canvas></div>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+          <button class="btn-secondary btn-sm" onclick="openBudgetSuggestModal()">✨ AI Suggest Budgets</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th class="num">Target (CAD/mo)</th>
+              <th class="num">Actual</th>
+              <th class="num">Variance</th>
+              <th class="num">Status</th>
+            </tr>
+          </thead>
+          <tbody id="budgetTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Transaction Table -->
+    <div class="section">
+      <div class="section-header">
+        <h2>Transactions</h2>
+        <div class="tx-controls">
+          <input type="text" id="txSearch" placeholder="Search transactions..." oninput="filterTransactions()" />
+          <span id="txCount" class="tx-count"></span>
+        </div>
+      </div>
+      <table id="txTable">
+        <thead>
+          <tr>
+            <th class="sortable" onclick="sortTable('transactions','date')">Date <span class="sort-indicator" id="si-tx-date"></span></th>
+            <th class="sortable" onclick="sortTable('transactions','description')">Description <span class="sort-indicator" id="si-tx-description"></span></th>
+            <th class="num sortable" onclick="sortTable('transactions','amount')">Amount <span class="sort-indicator" id="si-tx-amount"></span></th>
+            <th>Category</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody id="txBody"></tbody>
+      </table>
+      <div class="pagination" id="pagination"></div>
+    </div>
+
+  </div><!-- end #pnlView -->
+
+  <!-- ── PORTFOLIO VIEW ───────────────────────────────────────────────────────── -->
+  <div id="portfolioView" style="display:none">
+
+    <!-- Currency toggle + FX rate -->
+    <div class="port-meta-row" style="padding-top:16px;">
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div class="view-toggle">
+          <button class="toggle-view-btn" id="portToggleLocal" onclick="setPortCurrency('local')">View in Local Currency</button>
+          <button class="toggle-view-btn active" id="portToggleCAD" onclick="setPortCurrency('cad')">View in CAD</button>
+        </div>
+        <span class="port-fx-note" id="portFxNote">Fetching live prices…</span>
+      </div>
+      <div class="port-actions">
+        <button class="btn-secondary btn-sm" onclick="openAccountsModal()">Manage Accounts</button>
+        <button class="btn-secondary btn-sm" onclick="openLogDivModal()">+ Log Dividend</button>
+        <button class="btn-primary btn-sm" onclick="openAddHoldingModal()">+ Add Holding</button>
+      </div>
+    </div>
+
+    <!-- Portfolio summary bar (always CAD — consolidated view) -->
+    <div class="portfolio-summary-bar">
+      <div class="port-card">
+        <div class="port-card-label">Total Invested</div>
+        <div class="port-card-value" id="portTotalCost">—</div>
+        <div class="port-card-sub">Cost basis (CAD)</div>
+      </div>
+      <div class="port-card">
+        <div class="port-card-label">Market Value</div>
+        <div class="port-card-value" id="portTotalValue">—</div>
+        <div class="port-card-sub" id="portTotalGainSub">—</div>
+      </div>
+      <div class="port-card">
+        <div class="port-card-label">Total Return</div>
+        <div class="port-card-value" id="portTotalReturnPct">—</div>
+        <div class="port-card-sub">Unrealized (CAD)</div>
+      </div>
+      <div class="port-card">
+        <div class="port-card-label">Total Dividends</div>
+        <div class="port-card-value" id="portTotalDivs">—</div>
+        <div class="port-card-sub">All time (CAD)</div>
+      </div>
+    </div>
+
+    <!-- Holdings table -->
+    <div class="section" style="margin-top:8px">
+      <div class="section-header">
+        <h2>Holdings</h2>
+        <span id="holdingsViewLabel" style="font-size:11px;color:var(--text-muted);">All values in CAD</span>
+      </div>
+      <div id="holdingsTableWrap">
+        <div class="empty-state">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Dividends section -->
+    <div class="section" id="dividendsSection" style="display:none">
+      <div class="section-header">
+        <h2>Dividends Received</h2>
+      </div>
+      <div id="dividendsTableWrap"></div>
+    </div>
+
+  </div><!-- end #portfolioView -->
+
+  <!-- ── Upload Modal ───────────────────────────────────────────────────────── -->
+  <div id="uploadModal" class="modal-overlay" onclick="closeUploadModal(event)">
+    <div class="modal">
+      <h2>Upload Bank Statement</h2>
+      <form id="uploadForm" onsubmit="handleUpload(event)">
+        <div class="form-group">
+          <label for="pdfFile">PDF File(s)</label>
+          <input type="file" id="pdfFile" name="file" accept=".pdf" multiple required />
+          <p class="field-hint">Select multiple PDFs to batch-upload</p>
+        </div>
+        <div class="form-group">
+          <label for="bankName">Bank Name <span class="optional">(optional — helps Claude parse dates)</span></label>
+          <input type="text" id="bankName" name="bank_name" placeholder="e.g. Chase, Bank of America, Wells Fargo" />
+        </div>
+        <div class="form-group">
+          <label for="manualSuffix">Account # Last 4 Digits <span class="optional">(optional — auto-detected from PDF)</span></label>
+          <input type="text" id="manualSuffix" name="account_suffix_override" placeholder="e.g. 1234" maxlength="4" pattern="\d{4}" />
+        </div>
+        <div class="form-group">
+          <label>Account Type</label>
+          <div class="radio-group">
+            <label class="radio-option"><input type="radio" name="account_type" value="personal" checked /> Personal</label>
+            <label class="radio-option"><input type="radio" name="account_type" value="business" /> Business</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="accountSubtype">Account Sub-type <span class="optional">(optional)</span></label>
+          <select id="accountSubtype" name="account_subtype">
+            <option value="">— Not specified —</option>
+            <option value="chequing">Chequing</option>
+            <option value="savings">Savings</option>
+            <option value="credit_card">Credit Card</option>
+          </select>
+        </div>
+        <div id="uploadStatus" class="upload-status" style="display:none"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" onclick="closeUploadModal()">Cancel</button>
+          <button type="submit" class="btn-primary" id="uploadBtn">Upload &amp; Process</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Manage Statements Modal ────────────────────────────────────────────── -->
+  <div id="manageModal" class="modal-overlay" onclick="closeManageModal(event)">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h2>Manage Statements</h2>
+        <button class="btn-secondary btn-sm" onclick="closeManageModal()">✕ Close</button>
+      </div>
+      <div id="manageStatus" class="upload-status" style="display:none"></div>
+      <table id="manageTable">
+        <thead>
+          <tr>
+            <th class="sortable" onclick="sortManage('filename')">File <span class="sort-indicator" id="si-mg-filename"></span></th>
+            <th>Bank</th>
+            <th>Account #</th>
+            <th class="sortable" onclick="sortManage('month')">Month <span class="sort-indicator" id="si-mg-month"></span></th>
+            <th class="sortable" onclick="sortManage('account_type')">Type <span class="sort-indicator" id="si-mg-account_type"></span></th>
+            <th class="num">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="manageBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Add Category Modal ─────────────────────────────────────────────────── -->
+  <div id="addCategoryModal" class="modal-overlay" onclick="closeAddCategoryModal(event)">
+    <div class="modal">
+      <h2>Add Custom Category</h2>
+      <div class="form-group">
+        <label for="newCatName">Name</label>
+        <input type="text" id="newCatName" placeholder="e.g. home_office (underscores ok)" />
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="newCatType" value="expense" checked /> Expense</label>
+          <label class="radio-option"><input type="radio" name="newCatType" value="income" /> Income</label>
+        </div>
+      </div>
+      <div id="addCatStatus" class="upload-status" style="display:none"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeAddCategoryModal()">Cancel</button>
+        <button class="btn-primary" onclick="submitAddCategory()">Add Category</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Category Drill-Down Modal ────────────────────────────────────────── -->
+  <div id="categoryModal" class="modal-overlay" onclick="closeCategoryModal(event)">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h2 id="categoryModalTitle">Category</h2>
+        <button class="btn-secondary btn-sm" onclick="closeCategoryModal()">✕ Close</button>
+      </div>
+      <div class="modal-subtitle" id="categoryModalSubtitle"></div>
+      <div class="modal-search-row">
+        <input type="text" id="categoryModalSearch" placeholder="Search transactions..." oninput="filterCategoryModal()" />
+      </div>
+      <div class="modal-table-wrap">
+        <table id="categoryModalTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th class="num">Amount</th>
+              <th>Category</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody id="categoryModalBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Add Holding Modal (Portfolio) ─────────────────────────────────────── -->
+  <div id="addHoldingModal" class="modal-overlay" onclick="closeAddHoldingModal(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Add Holding</h2>
+        <button class="btn-secondary btn-sm" onclick="closeAddHoldingModal()">✕</button>
+      </div>
+      <div class="form-group">
+        <label for="holdingTicker">Ticker Symbol</label>
+        <input type="text" id="holdingTicker" placeholder="e.g. AAPL, VFV.TO, XEQT.TO" style="text-transform:uppercase" onblur="detectTickerCurrency()" />
+        <p id="tickerDetectStatus" class="field-hint" style="display:none"></p>
+        <p class="field-hint">Canadian tickers end in .TO &nbsp;·&nbsp; Currency is auto-detected</p>
+      </div>
+      <input type="hidden" id="holdingCurrencyDetected" value="" />
+      <div class="form-group">
+        <label for="holdingShares">Number of Shares</label>
+        <input type="text" id="holdingShares" placeholder="e.g. 100" />
+      </div>
+      <div class="form-group">
+        <label for="holdingCost">Average Buy Price <span id="holdingCostCurrencyHint" class="optional"></span></label>
+        <input type="text" id="holdingCost" placeholder="e.g. 128.40" />
+      </div>
+      <div class="form-group">
+        <label for="holdingAccount">Account <span class="optional">(optional)</span></label>
+        <select id="holdingAccount">
+          <option value="">— Unassigned —</option>
+        </select>
+      </div>
+      <div id="addHoldingStatus" class="upload-status" style="display:none"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeAddHoldingModal()">Cancel</button>
+        <button class="btn-primary" id="addHoldingSubmitBtn" onclick="submitAddHolding()">Add Holding</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Manage Accounts Modal (Portfolio) ────────────────────────────────── -->
+  <div id="accountsModal" class="modal-overlay" onclick="closeAccountsModal(event)">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h2>Investment Accounts</h2>
+        <button class="btn-secondary btn-sm" onclick="closeAccountsModal()">✕ Close</button>
+      </div>
+      <div id="accountsStatus" class="upload-status" style="display:none"></div>
+      <div id="accountsList"></div>
+      <div class="accounts-new-form" style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px;">
+        <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;">+ New Account</h3>
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+          <div class="form-group" style="margin:0;flex:0 0 160px">
+            <label for="newAcctType">Type</label>
+            <select id="newAcctType">
+              <option value="TFSA">TFSA</option>
+              <option value="RRSP">RRSP</option>
+              <option value="RRIF">RRIF</option>
+              <option value="RESP">RESP</option>
+              <option value="FHSA">FHSA</option>
+              <option value="Non-Registered">Non-Registered</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;flex:1;min-width:140px">
+            <label for="newAcctNickname">Nickname</label>
+            <input type="text" id="newAcctNickname" placeholder="e.g. My TFSA" />
+          </div>
+          <button class="btn-primary btn-sm" style="margin-bottom:1px" onclick="submitCreateAccount()">Create</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Log Dividend Modal (Portfolio) ────────────────────────────────────── -->
+  <div id="logDivModal" class="modal-overlay" onclick="closeLogDivModal(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Log Dividend</h2>
+        <button class="btn-secondary btn-sm" onclick="closeLogDivModal()">✕</button>
+      </div>
+      <div class="form-group">
+        <label for="divHolding">Holding</label>
+        <select id="divHolding"></select>
+      </div>
+      <div class="form-group">
+        <label for="divAmount">Amount (CAD)</label>
+        <input type="text" id="divAmount" placeholder="e.g. 108.00" />
+      </div>
+      <div class="form-group">
+        <label for="divDate">Date Received</label>
+        <input type="text" id="divDate" placeholder="YYYY-MM-DD" />
+      </div>
+      <div class="form-group">
+        <label for="divNotes">Notes <span class="optional">(optional)</span></label>
+        <input type="text" id="divNotes" placeholder="e.g. Q1 dividend" />
+      </div>
+      <div id="logDivStatus" class="upload-status" style="display:none"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeLogDivModal()">Cancel</button>
+        <button class="btn-primary" onclick="submitLogDividend()">Log Dividend</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CPA Advisor FAB + Panel ───────────────────────────────────────────── -->
+  <button class="advisor-fab" onclick="toggleAdvisorPanel()" title="CPA Advisor">💼</button>
+
+  <div class="advisor-panel" id="advisorPanel">
+    <div class="advisor-header">
+      <h3>💼 CPA Advisor</h3>
+      <button class="advisor-close" onclick="toggleAdvisorPanel()">✕</button>
+    </div>
+    <div class="advisor-body" id="advisorBody">
+      <div class="advisor-refresh">
+        <button class="btn-primary" style="flex:1" onclick="runAdvisorAnalysis()">Analyze My Finances</button>
+        <span class="advisor-refresh-ts" id="advisorTs"></span>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">
+        Click "Analyze My Finances" to get a personalized CPA review of your last 3 months.<br><br>
+        Includes: tax optimization (RRSP/TFSA), spending leaks, capital gains exposure, and actionable priorities.
+      </div>
+    </div>
+    <div class="advisor-footer" id="advisorFooter" style="display:none">
+      Powered by Claude · Based on last 3 months · Not a substitute for professional advice
+    </div>
+  </div>
+
+  <!-- ── Budget Suggest Modal ───────────────────────────────────────────────── -->
+  <div id="budgetSuggestModal" class="modal-overlay" onclick="closeBudgetSuggestModal(event)">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2>✨ AI Budget Suggestions</h2>
+        <button class="btn-secondary btn-sm" onclick="closeBudgetSuggestModal()">✕</button>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">Based on your last 6 months of spending. Accept or reject each — nothing is saved until you accept.</p>
+      <div id="budgetSuggestContent"><div class="advisor-spinner">Generating suggestions…</div></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeBudgetSuggestModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard Mockup — All 5 Features</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
+      --border: #2e3250; --text: #e2e6f0; --text-muted: #7c8aab;
+      --green: #22c55e; --green-dim: #16a34a22; --red: #ef4444; --red-dim: #dc262622;
+      --blue: #3b82f6; --amber: #f59e0b; --amber-dim: #f59e0b22;
+      --accent: #6366f1; --radius: 10px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5; padding-bottom: 80px; }
+
+    /* ── Net Worth Banner (NEW) ── */
+    .net-worth-banner {
+      display: flex; align-items: center; gap: 20px; padding: 10px 32px;
+      background: #12151f; border-bottom: 1px solid #1e2340;
+      font-size: 13px; flex-wrap: wrap;
+    }
+    .nw-item { display: flex; align-items: center; gap: 8px; }
+    .nw-label { color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .nw-value { font-weight: 700; font-size: 15px; color: #e2e6f0; }
+    .nw-value.green { color: var(--green); }
+    .nw-value.red { color: var(--red); }
+    .nw-sep { color: var(--border); }
+    .nw-tag { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 700; }
+    .nw-tag.up { background: var(--green-dim); color: var(--green); }
+    .nw-tag.down { background: var(--red-dim); color: var(--red); }
+    .nw-right { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 11px; }
+    .nw-refresh { background: none; border: 1px solid var(--border); color: var(--text-muted); border-radius: 4px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
+    .nw-refresh:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 32px; border-bottom: 1px solid var(--border);
+      background: var(--surface); position: sticky; top: 0; z-index: 100;
+    }
+    .header-left h1 { font-size: 20px; font-weight: 700; }
+    .header-sub { color: var(--text-muted); font-size: 12px; margin-left: 10px; }
+    .header-right { display: flex; gap: 10px; }
+
+    /* ── Tabs ── */
+    .account-tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; }
+    .tab-btn {
+      background: none; border: none; border-bottom: 3px solid transparent;
+      color: var(--text-muted); cursor: pointer; font-size: 14px; font-weight: 600;
+      padding: 12px 24px; transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active[data-type="personal"] { color: #a78bfa; border-color: #a78bfa; }
+    .tab-btn.active[data-type="business"] { color: var(--blue); border-color: var(--blue); }
+    .tab-btn.active[data-type="portfolio"] { color: var(--green); border-color: var(--green); }
+
+    /* ── Buttons ── */
+    .btn-primary { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 16px; font-size: 13px; cursor: pointer; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 5px; cursor: pointer; }
+    .btn-ghost { background: none; border: 1px solid var(--border); color: var(--text-muted); border-radius: 5px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
+    .btn-ghost:hover { border-color: var(--red); color: var(--red); }
+    .btn-green { background: #15803d; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+    /* ── Month bar ── */
+    .month-bar { display: flex; align-items: center; gap: 12px; padding: 14px 32px; border-bottom: 1px solid var(--border); }
+    .month-bar label { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .month-bar select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 14px; }
+
+    /* ── Summary cards ── */
+    .summary-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 24px 32px 8px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; }
+    .card-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 8px; }
+    .card-value { font-size: 28px; font-weight: 700; }
+    .card.income .card-value { color: var(--green); }
+    .card.expenses .card-value { color: var(--red); }
+    .card.net .card-value { color: var(--green); }
+
+    /* ── Section ── */
+    .section { margin: 0 32px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .section-header h2 { font-size: 14px; font-weight: 600; color: var(--text-muted); margin: 0; }
+    .hint { font-size: 11px; font-weight: 400; color: var(--text-muted); margin-left: 8px; }
+
+    /* ── Tables ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { text-align: left; padding: 8px 12px; color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+    th.num, td.num { text-align: right; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: 10px 12px; }
+    .amount-pos { color: var(--green); font-weight: 600; }
+    .amount-neg { color: var(--red); font-weight: 600; }
+
+    /* ── Badge ── */
+    .badge { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+    .badge-stale { background: var(--amber-dim); color: var(--amber); }
+    .badge-live  { background: var(--green-dim); color: var(--green); }
+    .badge-high  { background: var(--red-dim); color: var(--red); }
+    .badge-medium{ background: var(--amber-dim); color: var(--amber); }
+    .badge-low   { background: var(--green-dim); color: var(--green); }
+
+    /* ── Charts row ── */
+    .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 32px 24px; }
+    .chart-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; }
+    .chart-box h2 { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text-muted); }
+    .chart-container { position: relative; height: 240px; }
+
+    /* ═══════════════════════════════════════════════════
+       FEATURE 1 — PORTFOLIO TAB
+    ═══════════════════════════════════════════════════ */
+    #portfolioView { display: none; }
+    .portfolio-summary-bar {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+      padding: 24px 32px 8px;
+    }
+    .port-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; }
+    .port-card-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 6px; }
+    .port-card-value { font-size: 22px; font-weight: 700; }
+    .port-card-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .port-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 0 32px 16px; }
+    .fx-note { padding: 0 32px 8px; font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+
+    /* ═══════════════════════════════════════════════════
+       FEATURE 2 — CPA ADVISOR PANEL
+    ═══════════════════════════════════════════════════ */
+    .advisor-fab {
+      position: fixed; bottom: 24px; right: 24px; z-index: 300;
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--accent); color: #fff; border: none;
+      font-size: 22px; cursor: pointer; box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .advisor-fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(99,102,241,0.55); }
+    .advisor-fab-label {
+      position: fixed; bottom: 28px; right: 84px; z-index: 300;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text-muted); font-size: 11px; font-weight: 600;
+      padding: 4px 10px; border-radius: 4px; white-space: nowrap;
+      pointer-events: none;
+    }
+    .advisor-panel {
+      position: fixed; top: 0; right: 0; width: 420px; height: 100vh;
+      background: var(--surface); border-left: 1px solid var(--border);
+      z-index: 299; transform: translateX(100%); transition: transform 0.3s ease;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .advisor-panel.open { transform: translateX(0); }
+    .advisor-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+      background: var(--surface2); flex-shrink: 0;
+    }
+    .advisor-header h3 { font-size: 15px; font-weight: 700; }
+    .advisor-close { background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; line-height: 1; }
+    .advisor-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+    .advisor-refresh { display: flex; gap: 10px; margin-bottom: 20px; }
+    .advisor-card {
+      border-radius: 8px; padding: 16px; margin-bottom: 12px;
+      border: 1px solid var(--border);
+    }
+    .advisor-card.priority-high { border-left: 3px solid var(--red); }
+    .advisor-card.priority-medium { border-left: 3px solid var(--amber); }
+    .advisor-card.priority-low { border-left: 3px solid var(--green); }
+    .advisor-card-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .advisor-card-insight { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.6; }
+    .advisor-card-action { font-size: 12px; font-weight: 700; color: var(--text); }
+    .advisor-card-action::before { content: "→ "; color: var(--accent); }
+    .advisor-footer { padding: 16px 24px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+
+    /* ═══════════════════════════════════════════════════
+       FEATURE 3 — BUDGET INTELLIGENCE
+    ═══════════════════════════════════════════════════ */
+    .view-toggle { display: flex; gap: 0; margin-bottom: 20px; }
+    .toggle-btn {
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
+      padding: 7px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .toggle-btn:first-child { border-radius: 6px 0 0 6px; }
+    .toggle-btn:last-child  { border-radius: 0 6px 6px 0; border-left: none; }
+    .toggle-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    #budgetView { display: none; }
+    .budget-traffic-light { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tl-badge { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .tl-badge.green { background: var(--green-dim); color: var(--green); }
+    .tl-badge.amber { background: var(--amber-dim); color: var(--amber); }
+    .tl-badge.red { background: var(--red-dim); color: var(--red); }
+    .tl-badge.grey { background: var(--surface2); color: var(--text-muted); }
+    .budget-bar-wrap { display: flex; align-items: center; gap: 10px; }
+    .budget-bar-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+    .budget-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+    .budget-bar-fill.under { background: var(--green); }
+    .budget-bar-fill.over  { background: var(--red); }
+    .budget-bar-fill.amber-bar { background: var(--amber); }
+    .budget-target-input { width: 80px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 4px; padding: 3px 6px; font-size: 12px; text-align: right; }
+
+    /* ═══════════════════════════════════════════════════
+       FEATURE 4 — SPENDING DNA
+    ═══════════════════════════════════════════════════ */
+    .dna-header { cursor: pointer; user-select: none; }
+    .dna-header:hover h2 { color: var(--text); }
+    .dna-chevron { transition: transform 0.2s; }
+    .dna-chevron.open { transform: rotate(180deg); }
+    .dna-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+    .dna-sub { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+    .dna-sub-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 10px; }
+    .dna-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .dna-row:last-child { border-bottom: none; }
+    .dna-vendor { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+    .dna-meta { color: var(--text-muted); font-size: 11px; }
+    .dna-amount { font-weight: 600; color: var(--red); }
+    .dna-flag-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); border-radius: 4px; padding: 2px 8px; font-size: 10px; cursor: pointer; flex-shrink: 0; margin-left: 6px; }
+    .dna-flag-btn:hover { border-color: var(--amber); color: var(--amber); }
+    .dna-flag-btn.flagged { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+    .dna-review-badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 700; background: var(--amber-dim); color: var(--amber); margin-left: 4px; }
+
+    /* ── Insight cards (existing pattern) ── */
+    .insights-section { padding: 0 32px 24px; }
+    .insights-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .insight-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+    .insight-card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 12px; }
+    .insight-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .insight-item:last-child { border-bottom: none; }
+    .insight-item-name { color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 8px; }
+    .insight-item-value { font-weight: 600; }
+    .insight-warning { border-left: 3px solid var(--amber); }
+    .insight-warning .insight-card-title { color: var(--amber); }
+
+    /* ── Modal ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 400; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 32px; width: 460px; max-width: 92vw; max-height: 85vh; overflow-y: auto; }
+    .modal h2 { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .modal-header h2 { margin-bottom: 0; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    .form-group input, .form-group select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 12px; font-size: 13px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .radio-group { display: flex; gap: 20px; }
+    .radio-option { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+    .radio-option input { accent-color: var(--accent); }
+    .suggest-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .suggest-card-left { flex: 1; }
+    .suggest-cat { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .suggest-rationale { font-size: 11px; color: var(--text-muted); }
+    .suggest-amount { font-size: 15px; font-weight: 700; color: var(--green); white-space: nowrap; }
+    .suggest-actions { display: flex; gap: 6px; }
+    .btn-accept { background: var(--green-dim); border: 1px solid var(--green); color: var(--green); border-radius: 5px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; }
+    .btn-reject { background: var(--red-dim); border: 1px solid var(--red); color: var(--red); border-radius: 5px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; }
+
+    /* ── Demo note banner ── */
+    .demo-banner {
+      background: #1e2540; border: 1px solid #2e3a60; border-radius: 8px;
+      padding: 10px 20px; margin: 16px 32px 0;
+      font-size: 12px; color: #7c8aab; display: flex; align-items: center; gap: 10px;
+    }
+    .demo-banner strong { color: var(--amber); }
+
+    /* ── Divider ── */
+    .section-spacer { height: 24px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     HEADER (unchanged)
+══════════════════════════════════════════════════════════ -->
+<header>
+  <div class="header-left">
+    <h1>P&amp;L Dashboard <span class="header-sub">Bank Statement Analyzer</span></h1>
+  </div>
+  <div class="header-right">
+    <button class="btn-secondary">Manage Statements</button>
+    <button class="btn-primary">+ Upload Statement</button>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════
+     FEATURE 5 — NET WORTH BANNER (always visible, above tabs)
+══════════════════════════════════════════════════════════ -->
+<div class="net-worth-banner">
+  <div class="nw-item">
+    <span class="nw-label">Net Worth</span>
+    <span class="nw-value green">$89,340 CAD</span>
+    <span class="nw-tag up">▲ +$2,140 vs Mar</span>
+  </div>
+  <span class="nw-sep">|</span>
+  <div class="nw-item">
+    <span class="nw-label">💰 Cash (Apr net)</span>
+    <span class="nw-value">$4,820</span>
+  </div>
+  <span class="nw-sep">|</span>
+  <div class="nw-item">
+    <span class="nw-label">📈 Investments</span>
+    <span class="nw-value">$84,520</span>
+  </div>
+  <div class="nw-right">
+    FX: 1 USD = 1.3842 CAD &nbsp;
+    <button class="nw-refresh" onclick="alert('Would refresh live prices')">↻ Refresh</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     ACCOUNT TYPE TABS (Personal | Business | Portfolio NEW)
+══════════════════════════════════════════════════════════ -->
+<div class="account-tabs">
+  <button class="tab-btn active" data-type="personal" onclick="switchView('personal')">Personal</button>
+  <button class="tab-btn" data-type="business" onclick="switchView('business')">Business</button>
+  <button class="tab-btn" data-type="portfolio" onclick="switchView('portfolio')">Portfolio</button>
+</div>
+
+<!-- DEMO NOTICE -->
+<div class="demo-banner">
+  <strong>MOCKUP</strong> — All data is hardcoded. Use the tabs above to preview each feature. Click the 💼 button (bottom-right) for the CPA Advisor panel.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PNL VIEW (Personal / Business — existing layout + new features)
+══════════════════════════════════════════════════════════ -->
+<div id="pnlView">
+
+  <!-- Month bar -->
+  <div class="month-bar">
+    <label>Month</label>
+    <select><option>April 2026</option><option>March 2026</option></select>
+    <label>Account</label>
+    <select><option>All Accounts</option><option>...9016</option></select>
+    <label style="display:flex;align-items:center;gap:6px;color:var(--text-muted);font-size:12px;cursor:pointer;">
+      <input type="checkbox" checked style="accent-color:var(--accent);" /> Exclude Internal Transfers (True P&amp;L)
+    </label>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="summary-cards">
+    <div class="card income">
+      <div class="card-label">Total Income</div>
+      <div class="card-value">$8,450.00</div>
+    </div>
+    <div class="card expenses">
+      <div class="card-label">Total Expenses</div>
+      <div class="card-value">−$3,630.00</div>
+    </div>
+    <div class="card net">
+      <div class="card-label">Net</div>
+      <div class="card-value">$4,820.00</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-row">
+    <div class="chart-box">
+      <h2>Expense Breakdown</h2>
+      <div class="chart-container"><canvas id="donutChart"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <h2>6-Month Income vs Expenses</h2>
+      <div class="chart-container"><canvas id="barChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Insights (existing) -->
+  <div class="insights-section">
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:12px;">AI Insights</div>
+    <div class="insights-grid">
+      <div class="insight-card insight-warning">
+        <div class="insight-card-title">🔔 Recurring Subscriptions</div>
+        <div class="insight-item"><span class="insight-item-name">NETFLIX</span><span class="insight-item-value amount-neg">−$22.99</span></div>
+        <div class="insight-item"><span class="insight-item-name">SPOTIFY</span><span class="insight-item-value amount-neg">−$11.99</span></div>
+        <div class="insight-item"><span class="insight-item-name">ADOBE CC</span><span class="insight-item-value amount-neg">−$79.99</span></div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-card-title">📊 Top Expense Categories</div>
+        <div class="insight-item"><span class="insight-item-name">Rent</span><span class="insight-item-value">32%</span></div>
+        <div class="insight-item"><span class="insight-item-name">Groceries</span><span class="insight-item-value">18%</span></div>
+        <div class="insight-item"><span class="insight-item-name">Meals</span><span class="insight-item-value">14%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       FEATURE 4 — SPENDING DNA (collapsible card)
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header dna-header" onclick="toggleDna()">
+      <h2>💸 Spending DNA <span class="hint">3-month behavioral patterns</span></h2>
+      <span class="dna-chevron" id="dnaChevron">▼</span>
+    </div>
+    <div id="dnaContent" style="display:none">
+      <div class="dna-grid">
+
+        <!-- Recurring charges -->
+        <div class="dna-sub">
+          <div class="dna-sub-title">🔁 Recurring Charges</div>
+          <div class="dna-row">
+            <span class="dna-vendor">GOODLIFE FITNESS</span>
+            <span class="dna-meta">3 months</span>
+            <span class="dna-amount">−$55/mo</span>
+          </div>
+          <div class="dna-row">
+            <span class="dna-vendor">ROGERS WIRELESS</span>
+            <span class="dna-meta">3 months</span>
+            <span class="dna-amount">−$95/mo</span>
+          </div>
+          <div class="dna-row">
+            <span class="dna-vendor">RENT E-TRANSFER</span>
+            <span class="dna-meta">3 months</span>
+            <span class="dna-amount">−$1,750/mo</span>
+          </div>
+        </div>
+
+        <!-- Subscriptions to review -->
+        <div class="dna-sub">
+          <div class="dna-sub-title">⚠️ Subscriptions to Review</div>
+          <div class="dna-row">
+            <span class="dna-vendor">DUOLINGO PLUS <span class="dna-review-badge">REVIEW</span></span>
+            <span class="dna-meta">Since Jan</span>
+            <span class="dna-amount">−$13/mo</span>
+            <button class="dna-flag-btn" onclick="this.classList.toggle('flagged'); this.textContent = this.classList.contains('flagged') ? '🚩 Flagged' : 'Flag'">Flag</button>
+          </div>
+          <div class="dna-row">
+            <span class="dna-vendor">APPLE STORAGE <span class="dna-review-badge">REVIEW</span></span>
+            <span class="dna-meta">Since Feb</span>
+            <span class="dna-amount">−$3.99/mo</span>
+            <button class="dna-flag-btn" onclick="this.classList.toggle('flagged'); this.textContent = this.classList.contains('flagged') ? '🚩 Flagged' : 'Flag'">Flag</button>
+          </div>
+          <div class="dna-row">
+            <span class="dna-vendor">CALM APP <span class="dna-review-badge">REVIEW</span></span>
+            <span class="dna-meta">Since Jan</span>
+            <span class="dna-amount">−$14.99/mo</span>
+            <button class="dna-flag-btn flagged">🚩 Flagged</button>
+          </div>
+        </div>
+
+        <!-- Top discretionary vendors -->
+        <div class="dna-sub">
+          <div class="dna-sub-title">🏆 Top Discretionary Vendors (6mo)</div>
+          <div class="dna-row">
+            <span style="font-size:11px;color:var(--text-muted);width:18px;flex-shrink:0;">1</span>
+            <span class="dna-vendor">LOBLAWS</span>
+            <span class="dna-amount">−$2,840</span>
+          </div>
+          <div class="dna-row">
+            <span style="font-size:11px;color:var(--text-muted);width:18px;flex-shrink:0;">2</span>
+            <span class="dna-vendor">UBER EATS</span>
+            <span class="dna-amount">−$1,220</span>
+          </div>
+          <div class="dna-row">
+            <span style="font-size:11px;color:var(--text-muted);width:18px;flex-shrink:0;">3</span>
+            <span class="dna-vendor">AMAZON.CA</span>
+            <span class="dna-amount">−$980</span>
+          </div>
+          <div class="dna-row">
+            <span style="font-size:11px;color:var(--text-muted);width:18px;flex-shrink:0;">4</span>
+            <span class="dna-vendor">TIM HORTONS</span>
+            <span class="dna-amount">−$640</span>
+          </div>
+        </div>
+
+        <!-- Spending spikes -->
+        <div class="dna-sub">
+          <div class="dna-sub-title">📈 Spending Spikes (MoM)</div>
+          <div class="dna-row" style="flex-direction:column;align-items:flex-start;gap:2px;">
+            <span style="font-weight:600;font-size:12px;">Groceries</span>
+            <span style="color:var(--red);font-size:12px;">jumped +$340 in March vs February</span>
+          </div>
+          <div class="dna-row" style="flex-direction:column;align-items:flex-start;gap:2px;">
+            <span style="font-weight:600;font-size:12px;">Shopping</span>
+            <span style="color:var(--red);font-size:12px;">jumped +$280 in April vs March</span>
+          </div>
+          <div class="dna-row" style="flex-direction:column;align-items:flex-start;gap:2px;">
+            <span style="font-weight:600;font-size:12px;">Entertainment</span>
+            <span style="color:var(--amber);font-size:12px;">+$95 in March vs February</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       FEATURE 3 — BUDGET INTELLIGENCE (sub-view toggle)
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <h2>Category Breakdown</h2>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="view-toggle">
+          <button class="toggle-btn active" id="btnPnl" onclick="showPnl()">P&amp;L</button>
+          <button class="toggle-btn" id="btnBudget" onclick="showBudget()">Budget</button>
+        </div>
+        <button class="btn-secondary btn-sm">+ Add Category</button>
+      </div>
+    </div>
+
+    <!-- P&L table (existing) -->
+    <div id="pnlTableView">
+      <table>
+        <thead><tr>
+          <th>Category</th><th>Type</th><th class="num">Amount</th><th class="num">Txns</th><th class="num">% of Total</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>Rent</td><td><span class="badge" style="background:#1e2640;color:var(--text-muted);">expense</span></td><td class="num amount-neg">−$1,750.00</td><td class="num">1</td><td class="num">48.2%</td></tr>
+          <tr><td>Groceries</td><td><span class="badge" style="background:#1e2640;color:var(--text-muted);">expense</span></td><td class="num amount-neg">−$620.00</td><td class="num">12</td><td class="num">17.1%</td></tr>
+          <tr><td>Meals</td><td><span class="badge" style="background:#1e2640;color:var(--text-muted);">expense</span></td><td class="num amount-neg">−$510.00</td><td class="num">18</td><td class="num">14.0%</td></tr>
+          <tr><td>Shopping</td><td><span class="badge" style="background:#1e2640;color:var(--text-muted);">expense</span></td><td class="num amount-neg">−$380.00</td><td class="num">7</td><td class="num">10.5%</td></tr>
+          <tr><td>Subscriptions</td><td><span class="badge" style="background:#1e2640;color:var(--text-muted);">expense</span></td><td class="num amount-neg">−$115.00</td><td class="num">5</td><td class="num">3.2%</td></tr>
+          <tr><td>Salary</td><td><span class="badge" style="background:var(--green-dim);color:var(--green);">income</span></td><td class="num amount-pos">+$8,450.00</td><td class="num">1</td><td class="num">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Budget sub-view (NEW) -->
+    <div id="budgetView">
+      <!-- Traffic light summary -->
+      <div class="budget-traffic-light">
+        <span class="tl-badge green">✅ 3 On Track</span>
+        <span class="tl-badge amber">⚠️ 1 Near Limit</span>
+        <span class="tl-badge red">🔴 2 Over Budget</span>
+        <span class="tl-badge grey">○ 4 No Target</span>
+        <button class="btn-secondary btn-sm" style="margin-left:auto;" onclick="document.getElementById('suggestModal').classList.add('open')">✨ AI Suggest Budgets</button>
+      </div>
+
+      <!-- Budget chart -->
+      <div style="height:240px;margin-bottom:20px;"><canvas id="budgetChart"></canvas></div>
+
+      <!-- Budget table -->
+      <table>
+        <thead><tr>
+          <th>Category</th>
+          <th class="num">Target (CAD)</th>
+          <th class="num">Actual</th>
+          <th class="num">Variance</th>
+          <th class="num">Status</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td>Meals</td>
+            <td class="num"><input type="text" class="budget-target-input" value="$450"></td>
+            <td class="num">$510.00</td>
+            <td class="num amount-neg">+$60 (+13%)</td>
+            <td class="num"><span class="badge badge-medium">⚠ Over</span></td>
+          </tr>
+          <tr>
+            <td>Groceries</td>
+            <td class="num"><input type="text" class="budget-target-input" value="$650"></td>
+            <td class="num">$620.00</td>
+            <td class="num amount-pos">−$30 (−5%)</td>
+            <td class="num"><span class="badge badge-low">✓ On Track</span></td>
+          </tr>
+          <tr>
+            <td>Shopping</td>
+            <td class="num"><input type="text" class="budget-target-input" value="$200"></td>
+            <td class="num">$380.00</td>
+            <td class="num amount-neg">+$180 (+90%)</td>
+            <td class="num"><span class="badge badge-high">✗ Over</span></td>
+          </tr>
+          <tr>
+            <td>Subscriptions</td>
+            <td class="num"><input type="text" class="budget-target-input" value="$120"></td>
+            <td class="num">$115.00</td>
+            <td class="num amount-pos">−$5 (−4%)</td>
+            <td class="num"><span class="badge badge-low">✓ On Track</span></td>
+          </tr>
+          <tr>
+            <td>Entertainment</td>
+            <td class="num"><input type="text" class="budget-target-input" value="$150"></td>
+            <td class="num">$170.00</td>
+            <td class="num amount-neg">+$20 (+13%)</td>
+            <td class="num"><span class="badge badge-medium">⚠ Near</span></td>
+          </tr>
+          <tr>
+            <td style="color:var(--text-muted);">Transport</td>
+            <td class="num" style="color:var(--text-muted);">—</td>
+            <td class="num">$285.00</td>
+            <td class="num" style="color:var(--text-muted);">—</td>
+            <td class="num"><span class="badge" style="background:var(--surface2);color:var(--text-muted);">No Target</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- end #pnlView -->
+
+<!-- ══════════════════════════════════════════════════════════
+     FEATURE 1 — PORTFOLIO VIEW
+══════════════════════════════════════════════════════════ -->
+<div id="portfolioView">
+
+  <!-- Portfolio summary bar -->
+  <div class="portfolio-summary-bar">
+    <div class="port-card">
+      <div class="port-card-label">Total Invested</div>
+      <div class="port-card-value">$62,400 CAD</div>
+      <div class="port-card-sub">Cost basis</div>
+    </div>
+    <div class="port-card">
+      <div class="port-card-label">Market Value</div>
+      <div class="port-card-value" style="color:var(--green);">$84,520 CAD</div>
+      <div class="port-card-sub" style="color:var(--green);">▲ +$22,120 total return</div>
+    </div>
+    <div class="port-card">
+      <div class="port-card-label">Total Return</div>
+      <div class="port-card-value" style="color:var(--green);">+35.5%</div>
+      <div class="port-card-sub" style="color:var(--green);">Unrealized gain</div>
+    </div>
+    <div class="port-card">
+      <div class="port-card-label">Total Dividends</div>
+      <div class="port-card-value">$1,240 CAD</div>
+      <div class="port-card-sub">Received YTD</div>
+    </div>
+  </div>
+
+  <!-- FX note + actions -->
+  <div class="fx-note">
+    <span>Live FX: 1 USD = 1.3842 CAD</span>
+    <span class="badge badge-live">● Live</span>
+    <span style="color:var(--text-muted);">Updated 2 min ago</span>
+  </div>
+  <div class="port-actions">
+    <button class="btn-secondary btn-sm" onclick="document.getElementById('logDivModal').classList.add('open')">+ Log Dividend</button>
+    <button class="btn-primary btn-sm" onclick="document.getElementById('addHoldingModal').classList.add('open')">+ Add Holding</button>
+  </div>
+
+  <!-- Holdings table -->
+  <div class="section" style="margin-top:0;">
+    <div class="section-header">
+      <h2>Holdings</h2>
+      <span style="font-size:11px;color:var(--text-muted);">All values in CAD</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Ticker</th>
+        <th>Shares</th>
+        <th class="num">Avg Cost</th>
+        <th class="num">Live Price</th>
+        <th class="num">Market Value</th>
+        <th class="num">Gain / Loss</th>
+        <th class="num">Return %</th>
+        <th class="num">Weight</th>
+        <th></th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>VFV.TO</strong><br><span style="color:var(--text-muted);font-size:11px;">Vanguard S&P 500</span></td>
+          <td>120</td>
+          <td class="num">$128.40</td>
+          <td class="num">$178.20 <span class="badge badge-live" style="font-size:9px;">●</span></td>
+          <td class="num">$21,384</td>
+          <td class="num amount-pos">+$5,976</td>
+          <td class="num amount-pos">+38.8%</td>
+          <td class="num">25.3%</td>
+          <td class="num"><button class="btn-ghost btn-sm">✕</button></td>
+        </tr>
+        <tr>
+          <td><strong>AAPL</strong><br><span style="color:var(--text-muted);font-size:11px;">Apple Inc.</span></td>
+          <td>45</td>
+          <td class="num">$245.60 CAD</td>
+          <td class="num">$267.40 CAD</td>
+          <td class="num">$12,033</td>
+          <td class="num amount-pos">+$981</td>
+          <td class="num amount-pos">+8.9%</td>
+          <td class="num">14.2%</td>
+          <td class="num"><button class="btn-ghost btn-sm">✕</button></td>
+        </tr>
+        <tr>
+          <td><strong>XEQT.TO</strong><br><span style="color:var(--text-muted);font-size:11px;">iShares All-Equity</span></td>
+          <td>200</td>
+          <td class="num">$28.90</td>
+          <td class="num">$31.45 <span class="badge badge-live" style="font-size:9px;">●</span></td>
+          <td class="num">$6,290</td>
+          <td class="num amount-pos">+$510</td>
+          <td class="num amount-pos">+8.8%</td>
+          <td class="num">7.4%</td>
+          <td class="num"><button class="btn-ghost btn-sm">✕</button></td>
+        </tr>
+        <tr>
+          <td><strong>NVDA</strong><br><span style="color:var(--text-muted);font-size:11px;">NVIDIA Corp.</span></td>
+          <td>15</td>
+          <td class="num">$1,420.00 CAD</td>
+          <td class="num"><span style="color:var(--amber);">$1,380 CAD</span> <span class="badge badge-stale" style="font-size:9px;">STALE</span></td>
+          <td class="num">$20,700</td>
+          <td class="num amount-neg">−$600</td>
+          <td class="num amount-neg">−2.8%</td>
+          <td class="num">24.5%</td>
+          <td class="num"><button class="btn-ghost btn-sm">✕</button></td>
+        </tr>
+        <tr>
+          <td><strong>BCE.TO</strong><br><span style="color:var(--text-muted);font-size:11px;">BCE Inc.</span></td>
+          <td>180</td>
+          <td class="num">$36.20</td>
+          <td class="num">$33.10 <span class="badge badge-live" style="font-size:9px;">●</span></td>
+          <td class="num">$5,958</td>
+          <td class="num amount-neg">−$558</td>
+          <td class="num amount-neg">−8.6%</td>
+          <td class="num">7.1%</td>
+          <td class="num"><button class="btn-ghost btn-sm">✕</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Dividends section -->
+  <div class="section">
+    <div class="section-header">
+      <h2>Dividends Received</h2>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Date</th><th>Ticker</th><th class="num">Amount (CAD)</th><th>Notes</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>2026-04-01</td><td>BCE.TO</td><td class="num amount-pos">+$108.00</td><td style="color:var(--text-muted);font-size:12px;">Q1 dividend</td></tr>
+        <tr><td>2026-03-15</td><td>VFV.TO</td><td class="num amount-pos">+$72.00</td><td style="color:var(--text-muted);font-size:12px;">Quarterly distribution</td></tr>
+        <tr><td>2026-01-15</td><td>BCE.TO</td><td class="num amount-pos">+$108.00</td><td style="color:var(--text-muted);font-size:12px;">Q4 dividend</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- end #portfolioView -->
+
+<!-- ══════════════════════════════════════════════════════════
+     FEATURE 2 — CPA ADVISOR (floating button + slide-in panel)
+══════════════════════════════════════════════════════════ -->
+<div class="advisor-fab-label">CPA Advisor</div>
+<button class="advisor-fab" onclick="toggleAdvisor()">💼</button>
+
+<div class="advisor-panel" id="advisorPanel">
+  <div class="advisor-header">
+    <h3>💼 CPA Advisor</h3>
+    <button class="advisor-close" onclick="toggleAdvisor()">✕</button>
+  </div>
+  <div class="advisor-body">
+    <div class="advisor-refresh">
+      <button class="btn-primary" style="flex:1;" onclick="alert('Would call Claude API with financial snapshot')">↻ Refresh Analysis</button>
+      <span style="font-size:11px;color:var(--text-muted);align-self:center;margin-left:8px;">Updated 5m ago</span>
+    </div>
+
+    <!-- Priority cards -->
+    <div class="advisor-card priority-high">
+      <div class="advisor-card-title">
+        Shopping Overspend
+        <span class="badge badge-high">🔴 High</span>
+      </div>
+      <div class="advisor-card-insight">You spent $380 on Shopping this month — 90% above your $200 target. Over the last 3 months, this category has consistently run hot (+$180 avg overage). This is your biggest controllable leak.</div>
+      <div class="advisor-card-action">Set a strict $220/mo shopping limit and review your Amazon auto-reorder settings this week.</div>
+    </div>
+
+    <div class="advisor-card priority-high">
+      <div class="advisor-card-title">
+        RRSP Opportunity
+        <span class="badge badge-high">🔴 High</span>
+      </div>
+      <div class="advisor-card-insight">Your $8,450/mo income places you in the 33% marginal bracket (CRA 2026). If you have unused RRSP room, every $10,000 contributed saves ~$3,300 in federal tax. With $4,820 monthly net, you can afford to contribute.</div>
+      <div class="advisor-card-action">Log into CRA My Account this week to check your RRSP deduction limit. Contribute before March 1 deadline.</div>
+    </div>
+
+    <div class="advisor-card priority-medium">
+      <div class="advisor-card-title">
+        Meals Creeping Up
+        <span class="badge badge-medium">🟡 Medium</span>
+      </div>
+      <div class="advisor-card-insight">Dining expenses rose 13% above target ($510 vs $450 budget). Uber Eats alone accounts for $220 of this — averaging $28/order, 8 orders/month. A small habit shift has meaningful annual impact: $1,440/year recoverable.</div>
+      <div class="advisor-card-action">Cap delivery orders to 4/month. Cook in batches on Sundays to reduce impulse ordering.</div>
+    </div>
+
+    <div class="advisor-card priority-medium">
+      <div class="advisor-card-title">
+        Capital Gains Exposure
+        <span class="badge badge-medium">🟡 Medium</span>
+      </div>
+      <div class="advisor-card-insight">Your portfolio has $22,120 in unrealized gains. Under CRA rules, 50% of capital gains above your annual limit are taxable as income. If you plan to sell positions, consider spreading realizations across tax years.</div>
+      <div class="advisor-card-action">Consult a CPA before selling any position with >$10,000 gain. Do not trigger gains near year-end if your income is already high.</div>
+    </div>
+
+    <div class="advisor-card priority-low">
+      <div class="advisor-card-title">
+        TFSA Headroom
+        <span class="badge badge-low">🟢 Low</span>
+      </div>
+      <div class="advisor-card-insight">Assuming your TFSA is not maxed, your current $4,820/mo net cash flow allows for meaningful monthly contributions. TFSA growth is fully tax-free — ideal for your equity holdings (AAPL, NVDA) with high growth potential.</div>
+      <div class="advisor-card-action">Move at least $500/mo into a TFSA-sheltered brokerage account. Prioritize high-growth US equities inside the TFSA.</div>
+    </div>
+
+    <div class="advisor-card priority-low">
+      <div class="advisor-card-title">
+        Subscription Audit Due
+        <span class="badge badge-low">🟢 Low</span>
+      </div>
+      <div class="advisor-card-insight">You have 3 flagged subscriptions (Calm App, Duolingo Plus, Apple Storage) totaling $31.98/mo. While individually small, the annual cost is $383. Your Spending DNA tab shows these have been active for 3+ months without obvious usage signals.</div>
+      <div class="advisor-card-action">Cancel the three flagged subscriptions this week. Set a calendar reminder to audit all subscriptions quarterly.</div>
+    </div>
+  </div>
+  <div class="advisor-footer">
+    Analysis based on April 2026 data · Powered by Claude · Not a substitute for professional advice
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════════════════════ -->
+
+<!-- Add Holding Modal -->
+<div id="addHoldingModal" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Add Holding</h2>
+      <button class="btn-ghost btn-sm" onclick="document.getElementById('addHoldingModal').classList.remove('open')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Ticker Symbol</label>
+      <input type="text" placeholder="e.g. AAPL, VFV.TO, XEQT.TO">
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Canadian tickers end in .TO (e.g. VFV.TO)</div>
+    </div>
+    <div class="form-group">
+      <label>Shares</label>
+      <input type="text" placeholder="e.g. 100">
+    </div>
+    <div class="form-group">
+      <label>Average Buy Price</label>
+      <input type="text" placeholder="e.g. 128.40">
+    </div>
+    <div class="form-group">
+      <label>Currency</label>
+      <div class="radio-group">
+        <label class="radio-option"><input type="radio" name="cur" checked> CAD</label>
+        <label class="radio-option"><input type="radio" name="cur"> USD (auto-converts to CAD)</label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="document.getElementById('addHoldingModal').classList.remove('open')">Cancel</button>
+      <button class="btn-primary" onclick="document.getElementById('addHoldingModal').classList.remove('open')">Add Holding</button>
+    </div>
+  </div>
+</div>
+
+<!-- Log Dividend Modal -->
+<div id="logDivModal" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Log Dividend</h2>
+      <button class="btn-ghost btn-sm" onclick="document.getElementById('logDivModal').classList.remove('open')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Holding</label>
+      <select>
+        <option>VFV.TO — Vanguard S&P 500</option>
+        <option>AAPL — Apple Inc.</option>
+        <option>BCE.TO — BCE Inc.</option>
+        <option>NVDA — NVIDIA Corp.</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Amount (CAD)</label>
+      <input type="text" placeholder="e.g. 108.00">
+    </div>
+    <div class="form-group">
+      <label>Date Received</label>
+      <input type="text" placeholder="YYYY-MM-DD" value="2026-04-07">
+    </div>
+    <div class="form-group">
+      <label>Notes <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
+      <input type="text" placeholder="e.g. Q1 dividend">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="document.getElementById('logDivModal').classList.remove('open')">Cancel</button>
+      <button class="btn-primary" onclick="document.getElementById('logDivModal').classList.remove('open')">Log Dividend</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI Budget Suggest Modal -->
+<div id="suggestModal" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="width:520px;">
+    <div class="modal-header">
+      <h2>✨ AI Budget Suggestions</h2>
+      <button class="btn-ghost btn-sm" onclick="document.getElementById('suggestModal').classList.remove('open')">✕</button>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Based on your last 6 months of spending. Accept or reject each suggestion individually — nothing is saved until you accept.</p>
+
+    <div class="suggest-card">
+      <div class="suggest-card-left">
+        <div class="suggest-cat">Meals</div>
+        <div class="suggest-rationale">Your 6-month median is $476 — targeting 5% below gives you room to improve without being unrealistic.</div>
+      </div>
+      <div class="suggest-amount">$452/mo</div>
+      <div class="suggest-actions">
+        <button class="btn-accept">✓ Accept</button>
+        <button class="btn-reject">✗ Skip</button>
+      </div>
+    </div>
+
+    <div class="suggest-card">
+      <div class="suggest-card-left">
+        <div class="suggest-cat">Shopping</div>
+        <div class="suggest-rationale">Your median is $310/mo but Feb–Apr show a clear upward trend. Cutting 10% targets the root habit, not the outlier.</div>
+      </div>
+      <div class="suggest-amount">$279/mo</div>
+      <div class="suggest-actions">
+        <button class="btn-accept">✓ Accept</button>
+        <button class="btn-reject">✗ Skip</button>
+      </div>
+    </div>
+
+    <div class="suggest-card">
+      <div class="suggest-card-left">
+        <div class="suggest-cat">Entertainment</div>
+        <div class="suggest-rationale">Median spend is $145/mo — this is a discretionary category with room to reduce by 10%.</div>
+      </div>
+      <div class="suggest-amount">$130/mo</div>
+      <div class="suggest-actions">
+        <button class="btn-accept">✓ Accept</button>
+        <button class="btn-reject">✗ Skip</button>
+      </div>
+    </div>
+
+    <div class="suggest-card">
+      <div class="suggest-card-left">
+        <div class="suggest-cat">Groceries</div>
+        <div class="suggest-rationale">Essential category — keeping at your median of $638 is the right call. No reduction recommended.</div>
+      </div>
+      <div class="suggest-amount">$638/mo</div>
+      <div class="suggest-actions">
+        <button class="btn-accept">✓ Accept</button>
+        <button class="btn-reject">✗ Skip</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="document.getElementById('suggestModal').classList.remove('open')">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── View Switching ─────────────────────────── */
+function switchView(type) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.tab-btn[data-type="${type}"]`).classList.add('active');
+
+  if (type === 'portfolio') {
+    document.getElementById('pnlView').style.display = 'none';
+    document.getElementById('portfolioView').style.display = 'block';
+  } else {
+    document.getElementById('pnlView').style.display = 'block';
+    document.getElementById('portfolioView').style.display = 'none';
+  }
+}
+
+/* ── Budget Toggle ──────────────────────────── */
+function showPnl() {
+  document.getElementById('pnlTableView').style.display = 'block';
+  document.getElementById('budgetView').style.display = 'none';
+  document.getElementById('btnPnl').classList.add('active');
+  document.getElementById('btnBudget').classList.remove('active');
+}
+function showBudget() {
+  document.getElementById('pnlTableView').style.display = 'none';
+  document.getElementById('budgetView').style.display = 'block';
+  document.getElementById('btnPnl').classList.remove('active');
+  document.getElementById('btnBudget').classList.add('active');
+  renderBudgetChart();
+}
+
+/* ── DNA Toggle ─────────────────────────────── */
+function toggleDna() {
+  const content = document.getElementById('dnaContent');
+  const chevron = document.getElementById('dnaChevron');
+  const open = content.style.display !== 'none';
+  content.style.display = open ? 'none' : 'block';
+  chevron.classList.toggle('open', !open);
+}
+
+/* ── CPA Advisor ────────────────────────────── */
+function toggleAdvisor() {
+  document.getElementById('advisorPanel').classList.toggle('open');
+}
+
+/* ── Charts ─────────────────────────────────── */
+let donutChart = null, barChart = null, budgetChart = null;
+
+function renderDonut() {
+  const ctx = document.getElementById('donutChart').getContext('2d');
+  if (donutChart) donutChart.destroy();
+  donutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Rent', 'Groceries', 'Meals', 'Shopping', 'Subscriptions', 'Other'],
+      datasets: [{
+        data: [1750, 620, 510, 380, 115, 255],
+        backgroundColor: ['#6366f1','#22c55e','#f59e0b','#ef4444','#3b82f6','#a78bfa'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { color: '#7c8aab', font: { size: 11 }, padding: 12 } } },
+      cutout: '65%'
+    }
+  });
+}
+
+function renderBar() {
+  const ctx = document.getElementById('barChart').getContext('2d');
+  if (barChart) barChart.destroy();
+  barChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'],
+      datasets: [
+        { label: 'Income', data: [7800, 8200, 8450, 8450, 8450, 8450], backgroundColor: '#22c55e44', borderColor: '#22c55e', borderWidth: 1 },
+        { label: 'Expenses', data: [3200, 4100, 3500, 3100, 3800, 3630], backgroundColor: '#ef444444', borderColor: '#ef4444', borderWidth: 1 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#7c8aab', font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#7c8aab' }, grid: { color: '#2e3250' } },
+        y: { ticks: { color: '#7c8aab', callback: v => '$' + v.toLocaleString() }, grid: { color: '#2e3250' } }
+      }
+    }
+  });
+}
+
+function renderBudgetChart() {
+  const ctx = document.getElementById('budgetChart').getContext('2d');
+  if (budgetChart) budgetChart.destroy();
+  const cats = ['Meals','Groceries','Shopping','Subscriptions','Entertainment'];
+  const targets = [450, 650, 200, 120, 150];
+  const actuals = [510, 620, 380, 115, 170];
+  const colors = actuals.map((a, i) => a > targets[i] ? '#ef4444' : '#22c55e');
+
+  budgetChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: cats,
+      datasets: [
+        { label: 'Target', data: targets, backgroundColor: '#2e3250', borderRadius: 3 },
+        { label: 'Actual', data: actuals, backgroundColor: colors, borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#7c8aab', font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#7c8aab' }, grid: { color: '#2e3250' } },
+        y: { ticks: { color: '#7c8aab', callback: v => '$' + v }, grid: { color: '#2e3250' } }
+      }
+    }
+  });
+}
+
+/* ── Init ───────────────────────────────────── */
+renderDonut();
+renderBar();
+</script>
+</body>
+</html>

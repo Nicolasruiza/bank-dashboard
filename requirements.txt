@@ -1,0 +1,8 @@
+flask==3.1.3
+anthropic==0.87.0
+pdfplumber==0.11.8
+PyMuPDF==1.26.5
+python-dotenv
+yfinance==1.2.0
+firebase-admin==7.4.0
+gunicorn
