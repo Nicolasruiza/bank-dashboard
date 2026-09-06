@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Executive Dashboard — Public Demo</title>
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f1f5f9}iframe{border:0;width:100%;height:100%;display:block}</style>
+</head>
+<body>
+<iframe id="dashboard" src="index.html" title="Executive Dashboard public demo"></iframe>
+<script>
+const replacements=[
+ [/Tangerine/gi,'Northstar Bank'],
+ [/Scotiabank/gi,'Northstar Bank'],
+ [/VISA\s*OCT/gi,'Instant Transfer'],
+ [/Visa Direct/gi,'Instant Transfer Network'],
+ [/Payments Canada/gi,'National Payments Network'],
+ [/Real[- ]Time Rail/gi,'Real-Time Payments'],
+ [/\bRTR\b/g,'RTP'],
+ [/Send and Receive\s*3\.6/gi,'Send & Receive Release A'],
+ [/Send and Receive\s*3\.7/gi,'Send & Receive Release B'],
+ [/Send\s*&\s*Receive\s*3\.6/gi,'Send & Receive Release A'],
+ [/Send\s*&\s*Receive\s*3\.7/gi,'Send & Receive Release B'],
+ [/RTR Butler/gi,'Payments Copilot']
+];
+function cleanString(value){let out=String(value??'');for(const [pattern,replacement] of replacements)out=out.replace(pattern,replacement);return out;}
+function sanitize(root){
+ const doc=root.nodeType===9?root:root.ownerDocument;
+ const walker=doc.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+ const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+ nodes.forEach(n=>{const v=cleanString(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v;});
+ root.querySelectorAll?.('input,textarea,option,[title],[aria-label],[data-name],[data-title]').forEach(el=>{
+   if('value' in el && typeof el.value==='string')el.value=cleanString(el.value);
+   ['title','aria-label','data-name','data-title'].forEach(a=>{if(el.hasAttribute(a))el.setAttribute(a,cleanString(el.getAttribute(a)));});
+ });
+}
+const frame=document.getElementById('dashboard');
+frame.addEventListener('load',()=>{
+ const doc=frame.contentDocument;
+ if(!doc)return;
+ sanitize(doc);
+ doc.title='Executive Dashboard — Public Demo';
+ const observer=new MutationObserver(mutations=>mutations.forEach(m=>{
+   if(m.type==='characterData'){const v=cleanString(m.target.nodeValue);if(v!==m.target.nodeValue)m.target.nodeValue=v;}
+   m.addedNodes.forEach(n=>{if(n.nodeType===1||n.nodeType===9)sanitize(n);else if(n.nodeType===3)n.nodeValue=cleanString(n.nodeValue);});
+ }));
+ observer.observe(doc.documentElement,{subtree:true,childList:true,characterData:true});
+ doc.addEventListener('input',e=>{if(e.target&&'value' in e.target)e.target.value=cleanString(e.target.value);},true);
+});
+</script>
+</body>
+</html>
