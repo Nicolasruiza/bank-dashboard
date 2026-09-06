@@ -34,12 +34,60 @@ function sanitize(root){
    ['title','aria-label','data-name','data-title'].forEach(a=>{if(el.hasAttribute(a))el.setAttribute(a,cleanString(el.getAttribute(a)));});
  });
 }
+function buildExportHtml(doc){
+ sanitize(doc);
+ const clone=doc.documentElement.cloneNode(true);
+ clone.querySelectorAll('script').forEach(el=>el.remove());
+ clone.querySelector('#v-edit')?.remove();
+ clone.querySelectorAll('button').forEach(btn=>{
+   const txt=(btn.textContent||'').trim().toLowerCase();
+   if(txt.includes('edit')||txt.includes('share')||txt.includes('print'))btn.remove();
+ });
+ clone.querySelectorAll('input,textarea,select').forEach(el=>{
+   const replacement=doc.createElement('div');
+   replacement.textContent=el.value||'';
+   replacement.style.whiteSpace='pre-wrap';
+   replacement.style.padding='7px 11px';
+   replacement.style.border='1px solid #e2e8f0';
+   replacement.style.borderRadius='7px';
+   replacement.style.background='#fafbfc';
+   el.replaceWith(replacement);
+ });
+ const exportStyle=doc.createElement('style');
+ exportStyle.textContent='@media print{#hdr{display:none!important}} body{background:#f1f5f9!important}.view{display:none!important}.view.on{display:block!important}';
+ clone.querySelector('head')?.appendChild(exportStyle);
+ const title=clone.querySelector('title');if(title)title.textContent='Executive Dashboard — Public Demo';
+ return '<!doctype html>\n'+clone.outerHTML;
+}
+function installExportOverride(frame){
+ const win=frame.contentWindow,doc=frame.contentDocument;
+ if(!win||!doc)return;
+ win.shareExport=function(){
+   try{
+     const html=buildExportHtml(doc);
+     const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+     const url=URL.createObjectURL(blob);
+     const a=doc.createElement('a');
+     a.href=url;
+     a.download='executive-dashboard-demo.html';
+     doc.body.appendChild(a);
+     a.click();
+     a.remove();
+     setTimeout(()=>URL.revokeObjectURL(url),1500);
+     if(typeof win.toast==='function')win.toast('📥 Dashboard exported');
+   }catch(err){
+     console.error('Export failed',err);
+     alert('Unable to export the dashboard. Please try again.');
+   }
+ };
+}
 const frame=document.getElementById('dashboard');
 frame.addEventListener('load',()=>{
  const doc=frame.contentDocument;
  if(!doc)return;
  sanitize(doc);
  doc.title='Executive Dashboard — Public Demo';
+ installExportOverride(frame);
  const observer=new MutationObserver(mutations=>mutations.forEach(m=>{
    if(m.type==='characterData'){const v=cleanString(m.target.nodeValue);if(v!==m.target.nodeValue)m.target.nodeValue=v;}
    m.addedNodes.forEach(n=>{if(n.nodeType===1||n.nodeType===9)sanitize(n);else if(n.nodeType===3)n.nodeValue=cleanString(n.nodeValue);});
