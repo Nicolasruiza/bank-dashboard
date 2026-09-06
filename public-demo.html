@@ -39,6 +39,7 @@ function buildExportHtml(doc){
  const clone=doc.documentElement.cloneNode(true);
  clone.querySelectorAll('script').forEach(el=>el.remove());
  clone.querySelector('#v-edit')?.remove();
+ clone.querySelectorAll('.tab-grp').forEach(el=>el.remove());
  clone.querySelectorAll('button').forEach(btn=>{
    const txt=(btn.textContent||'').trim().toLowerCase();
    if(txt.includes('edit')||txt.includes('share')||txt.includes('print'))btn.remove();
@@ -54,7 +55,7 @@ function buildExportHtml(doc){
    el.replaceWith(replacement);
  });
  const exportStyle=doc.createElement('style');
- exportStyle.textContent='@media print{#hdr{display:none!important}} body{background:#f1f5f9!important}.view{display:none!important}.view.on{display:block!important}';
+ exportStyle.textContent='body{background:#f1f5f9!important}.view{display:block!important}#v-roadmap,#v-program{margin-top:28px;padding-top:28px;border-top:2px solid #e2e8f0}@media print{#hdr{display:none!important}#v-roadmap,#v-program{break-before:page;page-break-before:always;margin-top:0;padding-top:0;border-top:0}}';
  clone.querySelector('head')?.appendChild(exportStyle);
  const title=clone.querySelector('title');if(title)title.textContent='Executive Dashboard — Public Demo';
  return '<!doctype html>\n'+clone.outerHTML;
